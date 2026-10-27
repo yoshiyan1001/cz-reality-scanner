@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "Reality Scanner CZ",
+  "description": "Shows similar flats from other Czech real estate sites while you browse Sreality, Bezrealitky, iDNES and more.",
+  "version": "0.1.0",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Reality Scanner CZ settings",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png"
+    }
+  },
+  "options_ui": {
+    "page": "popup.html",
+    "open_in_tab": false
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.bezrealitky.cz/*",
+    "https://reality.idnes.cz/*",
+    "https://realitymix.cz/*",
+    "https://www.videobydleni.cz/*",
+    "https://www.remax-czech.cz/*",
+    "https://www.expats.cz/*"
+  ],
+  "background": {
+    "service_worker": "src/background.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.sreality.cz/*",
+        "https://www.bezrealitky.cz/*",
+        "https://reality.idnes.cz/*",
+        "https://www.ulovdomov.cz/*",
+        "https://realitymix.cz/*",
+        "https://www.realcity.cz/*",
+        "https://www.realitypro.eu/*",
+        "https://www.videobydleni.cz/*",
+        "https://www.ceskereality.cz/*",
+        "https://www.realingo.cz/*",
+        "https://www.remax-czech.cz/*",
+        "https://reality.bazos.cz/*",
+        "https://www.expats.cz/*"
+      ],
+      "js": [
+        "src/content.tsx"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

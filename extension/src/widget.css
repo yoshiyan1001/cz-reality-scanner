@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+/*
+ * Inside a Shadow DOM, Tailwind v4's @property defaults are ignored (they only
+ * register at document level), so give the composable utility variables their
+ * initial values here.
+ */
+@layer base {
+  :host,
+  *,
+  ::before,
+  ::after {
+    --tw-border-style: solid;
+    --tw-shadow: 0 0 #0000;
+    --tw-inset-shadow: 0 0 #0000;
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-inset-ring-shadow: 0 0 #0000;
+    --tw-ring-offset-shadow: 0 0 #0000;
+  }
+
+  :host {
+    all: initial;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+}
