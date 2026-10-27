@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { AlternativeWidget } from "./AlternativeWidget";
+import { AlternativeWidget, isExtensionAlive } from "./AlternativeWidget";
 import { loadSettings, onSettingsChanged, type Settings } from "./settings";
 import { extractFlat, isDetailPage } from "./extract";
 import type { FlatInfo } from "./types";
@@ -74,7 +74,7 @@ function mount(flat: FlatInfo, settings: Settings) {
 }
 
 async function onRoute() {
-  if (location.pathname === currentPath) return;
+  if (!isExtensionAlive() || location.pathname === currentPath) return;
   currentPath = location.pathname;
   currentFlat = null;
   unmount();
@@ -105,6 +105,10 @@ onSettingsChanged((settings) => {
 // Several portals (Sreality, Bezrealitky, UlovDomov) are single-page apps: detect
 // client-side navigation as well as the first load.
 onRoute();
-const observer = new MutationObserver(() => onRoute());
+const observer = new MutationObserver(() => {
+  // An outdated copy of this script (extension reloaded, tab not refreshed) stops watching.
+  if (!isExtensionAlive()) return observer.disconnect();
+  onRoute();
+});
 observer.observe(document, { childList: true, subtree: true });
 window.addEventListener("popstate", () => onRoute());

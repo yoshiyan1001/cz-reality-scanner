@@ -19,7 +19,17 @@ function Cat({ className = "h-6 w-6" }: { className?: string }) {
 /** Shown straight away; the rest sit behind "Show more". */
 const TOP_COUNT = 3;
 
-const openSettings = () => chrome.runtime.sendMessage<OpenSettingsRequest>({ type: "OPEN_SETTINGS" });
+/**
+ * After the extension is reloaded or updated, scripts still running in already-open tabs
+ * lose their connection to it ("Extension context invalidated") until the tab is refreshed.
+ */
+export const isExtensionAlive = () => !!chrome.runtime?.id;
+const RELOAD_HINT = "Extension was updated — refresh this page";
+
+const openSettings = () => {
+  if (isExtensionAlive()) chrome.runtime.sendMessage<OpenSettingsRequest>({ type: "OPEN_SETTINGS" }).catch(() => {});
+  else alert(RELOAD_HINT);
+};
 
 const czk = new Intl.NumberFormat("cs-CZ", { style: "currency", currency: "CZK", maximumFractionDigits: 0 });
 
@@ -58,13 +68,13 @@ function describeFilters({ range, furnishedOnly }: Filters): string | null {
   return parts.length ? parts.join(" · ") : null;
 }
 
-/** "−3 000 Kč" (cheaper, green) / "+2 000 Kč" / "same price", relative to the viewed flat. */
+/** "−3 000 Kč" (cheaper, blue) / "+2 000 Kč" (dearer, red) / "same price", relative to the viewed flat. */
 function PriceDiff({ price, reference }: { price: number; reference: number | null }) {
   if (reference == null) return null;
   const diff = price - reference;
   if (diff === 0) return <span className="block text-xs text-zinc-500">same price</span>;
   return (
-    <span className={`block text-xs font-medium ${diff < 0 ? "text-emerald-700" : "text-zinc-500"}`}>
+    <span className={`block text-xs font-medium ${diff < 0 ? "text-blue-600" : "text-red-600"}`}>
       {diff < 0 ? "−" : "+"}
       {czk.format(Math.abs(diff))}
     </span>
@@ -87,6 +97,10 @@ export function AlternativeWidget({ flat, settings }: { flat: FlatInfo; settings
     setDismissed(false);
     const request: FindAlternativesRequest = { type: "FIND_ALTERNATIVES", flat };
 
+    if (!isExtensionAlive()) {
+      setState({ status: "error", message: RELOAD_HINT });
+      return;
+    }
     chrome.runtime
       .sendMessage<FindAlternativesRequest, FindAlternativesResponse>(request)
       .then((response) => {
@@ -95,7 +109,10 @@ export function AlternativeWidget({ flat, settings }: { flat: FlatInfo; settings
         const similar = findSimilar(parsePages(response, flat, filters), flat, filters);
         setState({ status: "done", similar, failed: response.failed });
       })
-      .catch((error: unknown) => !cancelled && setState({ status: "error", message: String(error) }));
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setState({ status: "error", message: isExtensionAlive() ? String(error) : RELOAD_HINT });
+      });
 
     return () => {
       cancelled = true;
@@ -111,7 +128,9 @@ export function AlternativeWidget({ flat, settings }: { flat: FlatInfo; settings
           <Cat className="h-7 w-7" />
         </button>
         {state.status === "error"
-          ? "Couldn't reach the other sites"
+          ? state.message === RELOAD_HINT
+            ? RELOAD_HINT
+            : "Couldn't reach the other sites"
           : `No similar ${flat.layout} flats found${describeFilters(filters) ? " with your filters" : ""}`}
         <button
           onClick={() => setDismissed(true)}
@@ -255,8 +274,6 @@ export function AlternativeWidget({ flat, settings }: { flat: FlatInfo; settings
         <button onClick={openSettings} className="font-medium text-emerald-700 underline hover:text-emerald-900">
           Change settings
         </button>
-        <br />
-        Compared live from your browser. Prices as listed; check fees on each site.
         {failed.length > 0 && <> Couldn't reach {failed.map((s) => SOURCE_LABELS[s]).join(", ")}.</>}
       </p>
     </div>

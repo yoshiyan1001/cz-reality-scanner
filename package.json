@@ -1,50 +1,28 @@
 {
-  "name": "cz-reality-scanner",
-  "version": "0.1.0",
+  "name": "reality-scanner-cz",
+  "description": "Chrome extension that shows similar Prague flats from other Czech real estate sites while you browse a listing.",
   "private": true,
+  "version": "0.1.0",
+  "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "start": "vite preview",
-    "lint": "eslint",
-    "db:migrate": "prisma migrate deploy",
-    "db:seed": "prisma db seed",
-    "postinstall": "prisma generate",
-    "deploy": "vinext-cloudflare deploy"
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "zip": "npm run build && cd dist && zip -qr ../reality-scanner-cz.zip ."
   },
   "dependencies": {
-    "@ai-sdk/google": "^4.0.106",
-    "@neon/config": "^1.9.4",
-    "@neon/env": "^1.6.5",
-    "@prisma/client": "^6.19.3",
-    "@vinext/cloudflare": "^1.2.1",
-    "agents": "^0.30.1",
-    "ai": "^7.0.154",
-    "pg": "^8.23.1",
-    "prisma": "^6.19.3",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "react-server-dom-webpack": "^19.3.1",
-    "server-only": "^0.0.1",
-    "vinext": "^1.3.1",
-    "zod": "^4.6.7"
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^2.0.0-beta.v.5",
-    "@tailwindcss/postcss": "^4.3.3",
-    "@types/node": "^20",
-    "@types/pg": "^8.23.1",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@crxjs/vite-plugin": "^3.0.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/chrome": "^0.3.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "@vitejs/plugin-rsc": "^0.5.38",
-    "cf": "^1.0.0-beta.23",
-    "eslint": "^9",
-    "eslint-config-next": "16.4.3",
-    "tailwindcss": "^4",
-    "tsx": "^4.23.15",
-    "typescript": "^5",
-    "vite": "^8.3.0"
-  },
-  "type": "module"
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  }
 }
