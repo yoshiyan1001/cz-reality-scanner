@@ -35,7 +35,7 @@ Open any Prague flat listing, for example on Sreality, and a small box appears i
 
 - **Similar flats** have the same layout (e.g. 2+kk), are in the same neighbourhood or district, are a similar size, and cost within ±5 000 Kč (rent) or ±30 % (sale).
 - **The 3 most similar are shown first**; click *Show more* for the rest.
-- **−/+** is the price difference from the listing you're viewing. Green means cheaper.
+- **−/+** is the price difference from the listing you're viewing: blue − is cheaper, red + is more expensive.
 - **The same flat on several sites** is shown once, with *Also on …* links.
 - **no commission** marks flats offered directly by the owner, so no agency fee.
 - **furnished** and **+ fees** (monthly service charges) are shown when the site lists them.
