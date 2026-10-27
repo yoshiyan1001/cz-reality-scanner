@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import catIcon from "../public/icons/icon-48.png?inline";
 import { filtersFor, hasRange, type Filters, type Settings } from "./settings";
 import { SOURCE_LABELS } from "./sites";
@@ -85,6 +85,10 @@ export function AlternativeWidget({ flat, settings }: { flat: FlatInfo; settings
   const [state, setState] = useState<State>({ status: "loading" });
   const [open, setOpen] = useState(true);
   const [showAll, setShowAll] = useState(false);
+  const listRef = useRef<HTMLUListElement>(null);
+  // Height of the first TOP_COUNT rows: the collapsed list shows exactly those and
+  // scrolls to reveal the rest.
+  const [topRowsHeight, setTopRowsHeight] = useState<number | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const unit = flat.offerType === "pronajem" ? "/month" : "";
   const filters = filtersFor(settings, flat.offerType);
@@ -118,6 +122,11 @@ export function AlternativeWidget({ flat, settings }: { flat: FlatInfo; settings
       cancelled = true;
     };
   }, [flat, settings]);
+
+  useLayoutEffect(() => {
+    const firstHidden = listRef.current?.children[TOP_COUNT] as HTMLElement | undefined;
+    setTopRowsHeight(firstHidden ? firstHidden.offsetTop : null);
+  }, [state, open]);
 
   // Nothing to list: say so in a small note (so it's clear the extension ran), dismissible.
   if (state.status === "error" || (state.status === "done" && state.similar.length === 0)) {
@@ -203,8 +212,12 @@ export function AlternativeWidget({ flat, settings }: { flat: FlatInfo; settings
         </button>
       </div>
 
-      <ul className={`divide-y divide-zinc-100 ${showAll ? "max-h-[55vh] overflow-y-auto" : ""}`}>
-        {(showAll ? similar : similar.slice(0, TOP_COUNT)).map((alt) => (
+      <ul
+        ref={listRef}
+        className={`relative divide-y divide-zinc-100 overflow-y-auto overscroll-contain ${showAll ? "max-h-[55vh]" : ""}`}
+        style={!showAll && topRowsHeight ? { maxHeight: topRowsHeight } : undefined}
+      >
+        {similar.map((alt) => (
           <li key={alt.url}>
             <a
               href={alt.url}
@@ -262,10 +275,15 @@ export function AlternativeWidget({ flat, settings }: { flat: FlatInfo; settings
 
       {similar.length > TOP_COUNT && (
         <button
-          onClick={() => setShowAll(!showAll)}
+          onClick={() => {
+            setShowAll(!showAll);
+            listRef.current?.scrollTo({ top: 0 });
+          }}
           className="w-full border-t border-zinc-100 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
         >
-          {showAll ? "Show top 3 only ▲" : `Show ${similar.length - TOP_COUNT} more similar flat${similar.length - TOP_COUNT === 1 ? "" : "s"} ▼`}
+          {showAll
+            ? "Show top 3 only ▲"
+            : `Scroll or show ${similar.length - TOP_COUNT} more similar flat${similar.length - TOP_COUNT === 1 ? "" : "s"} ▼`}
         </button>
       )}
 
