@@ -1,3 +1,4 @@
+import { NEIGHBORHOOD_DISTRICTS } from "./prague-districts";
 import type { Filters } from "./settings";
 import { hostSite } from "./sites";
 import { AREA, PRICE, findAddress, findLayout, fold, parsePrice, slug, spacedText } from "./text";
@@ -14,7 +15,24 @@ export type SearchTarget = {
  * Search-result page URLs per competitor, with the user's filters applied server-side so a
  * single page holds as many matches as possible. Only built from validated fields.
  */
+/**
+ * The flat's district(s): from the page when it says "Praha 8", otherwise from its
+ * neighborhood (pages often give only "Prague - Kobylisy", e.g. when translated).
+ */
+export function flatDistricts(flat: FlatInfo): string[] {
+  if (flat.district) return [flat.district];
+  const known = flat.neighborhood ? NEIGHBORHOOD_DISTRICTS[flat.neighborhood] : undefined;
+  return known ? known.map((n) => `Praha ${n}`) : [];
+}
+
+/** "praha 8" in an address, but not as part of "praha 80…" or "praha 18". */
+const mentionsDistrict = (address: string, district: string) =>
+  new RegExp(`(^|[^0-9a-z])${fold(district)}([^0-9]|$)`).test(fold(address));
+
 export function searchUrls(flat: FlatInfo, { range, furnishedOnly }: Filters): SearchTarget[] {
+  // A district-specific search returns far more relevant listings than all of Prague.
+  const districts = flatDistricts(flat);
+  const searchDistrict = districts.length === 1 ? districts[0] : null;
   const bezrealitkyQuery = new URLSearchParams({ disposition: `DISP_${flat.layout.replace("+", "_").toUpperCase()}` });
   if (range.min != null) bezrealitkyQuery.set("priceFrom", String(range.min));
   if (range.max != null) bezrealitkyQuery.set("priceTo", String(range.max));
@@ -25,10 +43,10 @@ export function searchUrls(flat: FlatInfo, { range, furnishedOnly }: Filters): S
   if (range.min != null) idnesQuery.set("s-qc[priceMin]", String(range.min));
   if (range.max != null) idnesQuery.set("s-qc[priceMax]", String(range.max));
   if (furnishedOnly) idnesQuery.set("vybaveni", "zarizeny");
-  const idnesArea = flat.district ? slug(flat.district) : "praha"; // praha-2
+  const idnesArea = searchDistrict ? slug(searchDistrict) : "praha"; // praha-2
   const idnesSearch = idnesQuery.size ? `?${idnesQuery}` : "";
 
-  const district = flat.district ? slug(flat.district) : null; // praha-2
+  const district = searchDistrict ? slug(searchDistrict) : null; // praha-2
   const expatsSubtype = expatsLayout(flat.layout);
 
   const targets: (SearchTarget | null)[] = [
@@ -264,7 +282,8 @@ export function parsePage(source: Source, doc: Document, flat: FlatInfo, filters
 /** "Korunní, Praha 2 - Vinohrady" -> "korunni"; null when the address has no street. */
 const streetOf = (address: string) => {
   const first = address.split(",")[0].trim();
-  return /^(praha|prague)\b/i.test(first) ? null : fold(first);
+  // RE/MAX writes "ulice V Holešovičkách" where others write "V Holešovičkách".
+  return /^(praha|prague)\b/i.test(first) ? null : fold(first).replace(/^(ulice|ul\.)\s*/, "");
 };
 
 /** Same street and size within 1 m²; when a listing omits its street, demand the exact size. */
@@ -308,9 +327,31 @@ function groupSameFlat(listings: Alternative[]): Alternative[] {
   return groups;
 }
 
+/**
+ * Pages often give only "Prague - Kobylisy" (no district number, especially when translated).
+ * Other sites' addresses say "Kyselova, Praha 8 - Kobylisy", so learn the district from them.
+ */
+function districtFromListings(listings: Alternative[], neighborhood: string | null): string | null {
+  if (!neighborhood) return null;
+  const counts = new Map<string, number>();
+  for (const { address } of listings) {
+    const m = address.match(/Praha\s*(\d{1,2})\s*[-–,]\s*(.+)$/);
+    if (m && fold(m[2]).startsWith(fold(neighborhood))) {
+      const d = `Praha ${m[1]}`;
+      counts.set(d, (counts.get(d) ?? 0) + 1);
+    }
+  }
+  return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+}
+
 /** How far price and size may differ from the viewed flat to still count as similar. */
-const PRICE_TOLERANCE = 0.3;
+/** Rentals: within ±5 000 Kč a month. */
+const RENT_PRICE_WINDOW_CZK = 5_000;
+/** Sales: a fixed amount means nothing across 3–15 M Kč, so stay relative. */
+const SALE_PRICE_TOLERANCE = 0.3;
 const AREA_TOLERANCE = 0.25;
+/** …but at least this many m² either way, so small flats (20–30 m²) aren't too strict. */
+const MIN_AREA_WINDOW_M2 = 8;
 /** Ranking penalty for being in the same district but a different neighborhood. */
 const OTHER_NEIGHBORHOOD_PENALTY = 0.15;
 
@@ -318,22 +359,31 @@ const relativeDiff = (a: number, b: number) => Math.abs(a - b) / b;
 
 /**
  * Up to `limit` flats similar to the viewed one — same layout, same neighborhood or district,
- * similar size, and a price within ±30% (or within the user's own range, when set) — most
+ * similar size, and a price within ±5 000 Kč for rentals or ±30% for sales (or within the
+ * user's own range, when set) — most
  * similar first, with the same flat on several sites merged into one result.
  */
 export function findSimilar(all: Alternative[], flat: FlatInfo, filters: Filters, limit = 20): Alternative[] {
   const { range, furnishedOnly } = filters;
   const sameNeighborhood = (a: Alternative) => !!flat.neighborhood && fold(a.address).includes(fold(flat.neighborhood));
-  const sameDistrict = (a: Alternative) => !!flat.district && fold(a.address).includes(fold(flat.district));
+  const known = flatDistricts(flat);
+  const learned = known.length ? null : districtFromListings(all, flat.neighborhood);
+  const districts = learned ? [learned] : known;
+  const sameDistrict = (a: Alternative) => districts.some((d) => mentionsDistrict(a.address, d));
 
   const priceOk = (a: Alternative) => {
     if (range.min != null || range.max != null) {
       return (range.min == null || a.priceCzk >= range.min) && (range.max == null || a.priceCzk <= range.max);
     }
-    return flat.priceCzk == null || relativeDiff(a.priceCzk, flat.priceCzk) <= PRICE_TOLERANCE;
+    if (flat.priceCzk == null) return true;
+    return flat.offerType === "pronajem"
+      ? Math.abs(a.priceCzk - flat.priceCzk) <= RENT_PRICE_WINDOW_CZK
+      : relativeDiff(a.priceCzk, flat.priceCzk) <= SALE_PRICE_TOLERANCE;
   };
   const areaOk = (a: Alternative) =>
-    a.areaM2 == null || flat.areaM2 == null || relativeDiff(a.areaM2, flat.areaM2) <= AREA_TOLERANCE;
+    a.areaM2 == null ||
+    flat.areaM2 == null ||
+    Math.abs(a.areaM2 - flat.areaM2) <= Math.max(flat.areaM2 * AREA_TOLERANCE, MIN_AREA_WINDOW_M2);
 
   // Lower is more similar.
   const score = (a: Alternative) =>

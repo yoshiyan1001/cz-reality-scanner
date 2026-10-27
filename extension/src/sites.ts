@@ -38,8 +38,11 @@ export const HOST_SITES: HostSite[] = [
   },
 ];
 
+/** "www.bezrealitky.cz" and "bezrealitky.cz" are the same site. */
+const bare = (host: string) => host.replace(/^www\./, "");
+
 export function hostSite(host: string): HostSite | undefined {
-  return HOST_SITES.find((s) => s.host === host);
+  return HOST_SITES.find((s) => bare(s.host) === bare(host));
 }
 
 export const SOURCE_LABELS: Record<Source, string> = {

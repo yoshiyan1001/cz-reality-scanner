@@ -75,6 +75,7 @@ export function AlternativeWidget({ flat, settings }: { flat: FlatInfo; settings
   const [state, setState] = useState<State>({ status: "loading" });
   const [open, setOpen] = useState(true);
   const [showAll, setShowAll] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const unit = flat.offerType === "pronajem" ? "/month" : "";
   const filters = filtersFor(settings, flat.offerType);
 
@@ -83,6 +84,7 @@ export function AlternativeWidget({ flat, settings }: { flat: FlatInfo; settings
     const filters = filtersFor(settings, flat.offerType);
     setState({ status: "loading" });
     setShowAll(false);
+    setDismissed(false);
     const request: FindAlternativesRequest = { type: "FIND_ALTERNATIVES", flat };
 
     chrome.runtime
@@ -100,8 +102,27 @@ export function AlternativeWidget({ flat, settings }: { flat: FlatInfo; settings
     };
   }, [flat, settings]);
 
-  // Stay out of the way when there's nothing useful to show.
-  if (state.status === "error" || (state.status === "done" && state.similar.length === 0)) return null;
+  // Nothing to list: say so in a small note (so it's clear the extension ran), dismissible.
+  if (state.status === "error" || (state.status === "done" && state.similar.length === 0)) {
+    if (dismissed) return null;
+    return (
+      <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-white py-1.5 pl-2 pr-2 text-sm text-zinc-600 shadow-lg ring-1 ring-zinc-200">
+        <button onClick={openSettings} title="Settings" aria-label="Settings">
+          <Cat className="h-7 w-7" />
+        </button>
+        {state.status === "error"
+          ? "Couldn't reach the other sites"
+          : `No similar ${flat.layout} flats found${describeFilters(filters) ? " with your filters" : ""}`}
+        <button
+          onClick={() => setDismissed(true)}
+          aria-label="Dismiss"
+          className="rounded-full px-1.5 text-base leading-none text-zinc-400 hover:bg-zinc-100"
+        >
+          ×
+        </button>
+      </div>
+    );
+  }
 
   if (!open) {
     return (
@@ -141,9 +162,9 @@ export function AlternativeWidget({ flat, settings }: { flat: FlatInfo; settings
             {flat.layout} flat{similar.length === 1 ? "" : "s"} in {area}
           </p>
           <p className="mt-0.5 text-xs text-emerald-800">
-            On other sites, compared with this listing ({czk.format(flat.priceCzk!)}
+            This listing: {czk.format(flat.priceCzk!)}
             {unit}
-            {flat.areaM2 ? `, ${flat.areaM2} m²` : ""})
+            {flat.areaM2 ? ` · ${flat.areaM2} m²` : ""}
           </p>
         </div>
         <button

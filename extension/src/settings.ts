@@ -3,7 +3,7 @@ import type { OfferType } from "./types";
 export type PriceRange = { min: number | null; max: number | null };
 
 export type Settings = {
-  /** Show the comparison widget on Sreality at all. */
+  /** Show the comparison widget on supported property sites at all. */
   enabled: boolean;
   /** Monthly rent range for rentals (CZK). */
   rent: PriceRange;

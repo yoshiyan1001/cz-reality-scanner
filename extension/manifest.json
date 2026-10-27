@@ -40,18 +40,29 @@
   "content_scripts": [
     {
       "matches": [
+        "https://sreality.cz/*",
         "https://www.sreality.cz/*",
+        "https://bezrealitky.cz/*",
         "https://www.bezrealitky.cz/*",
         "https://reality.idnes.cz/*",
+        "https://ulovdomov.cz/*",
         "https://www.ulovdomov.cz/*",
         "https://realitymix.cz/*",
+        "https://www.realitymix.cz/*",
+        "https://realcity.cz/*",
         "https://www.realcity.cz/*",
+        "https://realitypro.eu/*",
         "https://www.realitypro.eu/*",
+        "https://videobydleni.cz/*",
         "https://www.videobydleni.cz/*",
+        "https://ceskereality.cz/*",
         "https://www.ceskereality.cz/*",
+        "https://realingo.cz/*",
         "https://www.realingo.cz/*",
+        "https://remax-czech.cz/*",
         "https://www.remax-czech.cz/*",
         "https://reality.bazos.cz/*",
+        "https://expats.cz/*",
         "https://www.expats.cz/*"
       ],
       "js": [

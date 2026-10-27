@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import catIcon from "../public/icons/icon-48.png";
 import "./popup.css";
+import { HOST_SITES } from "./sites";
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, type PriceRange, type Settings } from "./settings";
 
 const SAVE_DELAY_MS = 400;
@@ -94,11 +95,15 @@ function Popup() {
             onChange={(e) => update({ ...settings, enabled: e.target.checked })}
             className="h-4 w-4 accent-emerald-600"
           />
-          Show on Sreality
+          Show on property sites
         </label>
       </header>
 
-      <p className="text-xs text-zinc-600">Only show similar flats that match these filters. With no price range, flats within ±30% of the listing's price are shown.</p>
+      <p className="text-xs text-zinc-500">
+        Works on {HOST_SITES.slice(0, 3).map((s) => s.name).join(", ")} and {HOST_SITES.length - 3} more sites.
+      </p>
+
+      <p className="text-xs text-zinc-600">Only show similar flats that match these filters. With no price range, flats within ±5 000 Kč of the listing's rent (±30% for sales) are shown.</p>
 
       <RangeFields
         title="Rent per month"

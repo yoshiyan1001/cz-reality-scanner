@@ -67,7 +67,9 @@ export function extractFlat(location: Location, doc: Document): FlatInfo | null 
     offerType,
     layout,
     inPrague: /praha|prague/i.test(`${path} ${heading}`),
-    priceCzk: parsePrice(doc.querySelector(".norm-price")?.textContent) ?? parsePrice(block) ?? parsePrice(pageTitle),
+    // The price next to the heading first: page-wide selectors can hit other flats
+    // (e.g. Sreality's "similar ads" also use .norm-price).
+    priceCzk: parsePrice(block) ?? parsePrice(doc.querySelector(".norm-price")?.textContent) ?? parsePrice(pageTitle),
     areaM2: area ? Number(area[1]) : null,
     district: locality?.[1] ? `Praha ${locality[1]}` : null,
     neighborhood: neighborhoodFromSlug(path) ?? neighborhoodFromText(heading),

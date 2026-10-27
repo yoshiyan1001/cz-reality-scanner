@@ -79,7 +79,7 @@ async function onRoute() {
   currentFlat = null;
   unmount();
   if (!isDetailPage(location)) {
-    return;
+    return console.info("[Reality Scanner] Running. Open a single flat listing (not a search page) to compare.");
   }
 
   const flat = await waitForFlat();
