@@ -45,6 +45,8 @@ export type Alternative = {
   noCommission: boolean;
   /** Fully furnished (true), partly/unfurnished (false), or not stated (null). */
   furnished: boolean | null;
+  /** The listing's first photo, loaded straight from the source site (never stored). */
+  imageUrl: string | null;
   /** The same flat advertised on other sites (same price, size and street). */
   alsoOn?: { source: Source; url: string }[];
 };

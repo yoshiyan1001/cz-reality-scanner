@@ -119,6 +119,29 @@ function field(a: BezrealitkyAdvert, name: string): unknown {
   return key ? a[key] : undefined;
 }
 
+/** Only absolute https photo URLs, resolved against the source site. */
+function photoUrl(value: string | null | undefined, base: string): string | null {
+  if (!value || /^data:|preload|placeholder|\.svg(\?|$)/i.test(value)) return null;
+  try {
+    const url = new URL(value.trim().split(/\s+/)[0], base);
+    return url.protocol === "https:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The first real photo in a result card (lazy-loaded images keep it in data-src). */
+function firstPhoto(card: Element, base: string): string | null {
+  for (const img of Array.from(card.querySelectorAll("img"))) {
+    const url =
+      photoUrl(img.getAttribute("data-src"), base) ??
+      photoUrl(img.getAttribute("src"), base) ??
+      photoUrl(img.getAttribute("data-srcset"), base);
+    if (url) return url;
+  }
+  return null;
+}
+
 function bezrealitkyFurnished(tags: unknown): boolean | null {
   if (!Array.isArray(tags)) return null;
   if (tags.includes("Vybaveno")) return true;
@@ -151,6 +174,9 @@ export function parseBezrealitky(doc: Document, flat: FlatInfo): Alternative[] {
     )
     .map((a) => {
       const address = field(a, "address");
+      const imageRef = (a.mainImage as { __ref?: string } | null | undefined)?.__ref;
+      const image = imageRef ? (cache[imageRef] as BezrealitkyAdvert | undefined) : undefined;
+      const imageUrl = image ? field(image, "url") : null;
       return {
         source: "bezrealitky" as const,
         url: `https://www.bezrealitky.cz/nemovitosti-byty-domy/${a.uri}`,
@@ -161,6 +187,7 @@ export function parseBezrealitky(doc: Document, flat: FlatInfo): Alternative[] {
         address: typeof address === "string" ? address : "Praha",
         noCommission: true, // Bezrealitky only lists direct-from-owner offers.
         furnished: bezrealitkyFurnished(field(a, "tags")),
+        imageUrl: typeof imageUrl === "string" ? photoUrl(imageUrl, "https://www.bezrealitky.cz") : null,
       };
     });
 }
@@ -191,6 +218,7 @@ export function parseIdnes(doc: Document, furnishedFilterApplied: boolean): Alte
         address: text(a.querySelector(".c-products__info")),
         noCommission: false,
         furnished: furnishedFilterApplied ? true : null,
+        imageUrl: firstPhoto(a, "https://reality.idnes.cz"),
       },
     ];
   });
@@ -266,6 +294,7 @@ function parseCards(doc: Document, site: CardSite, flat: FlatInfo): Alternative[
         address: findAddress(text) ?? findAddress(title) ?? "Praha",
         noCommission: NO_COMMISSION.test(text),
         furnished: cardFurnished(text),
+        imageUrl: firstPhoto(card, site.base),
       },
     ];
   });
@@ -316,6 +345,7 @@ function groupSameFlat(listings: Alternative[]): Alternative[] {
       continue;
     }
     const entry = { source: listing.source, url: listing.url };
+    const photo = match.imageUrl ?? listing.imageUrl;
     if (listing.noCommission && !match.noCommission) {
       // Promote the no-commission listing to be the main link.
       const previous = { source: match.source, url: match.url };
@@ -323,6 +353,8 @@ function groupSameFlat(listings: Alternative[]): Alternative[] {
     } else {
       match.alsoOn!.push(entry);
     }
+    // Same flat: any site's photo will do when the main one has none.
+    match.imageUrl = match.imageUrl ?? photo;
   }
   return groups;
 }
@@ -352,8 +384,6 @@ const SALE_PRICE_TOLERANCE = 0.3;
 const AREA_TOLERANCE = 0.25;
 /** …but at least this many m² either way, so small flats (20–30 m²) aren't too strict. */
 const MIN_AREA_WINDOW_M2 = 8;
-/** Ranking penalty for being in the same district but a different neighborhood. */
-const OTHER_NEIGHBORHOOD_PENALTY = 0.15;
 
 const relativeDiff = (a: number, b: number) => Math.abs(a - b) / b;
 
@@ -385,11 +415,13 @@ export function findSimilar(all: Alternative[], flat: FlatInfo, filters: Filters
     flat.areaM2 == null ||
     Math.abs(a.areaM2 - flat.areaM2) <= Math.max(flat.areaM2 * AREA_TOLERANCE, MIN_AREA_WINDOW_M2);
 
-  // Lower is more similar.
-  const score = (a: Alternative) =>
-    (flat.priceCzk ? relativeDiff(a.priceCzk, flat.priceCzk) : 0) +
-    (a.areaM2 != null && flat.areaM2 ? relativeDiff(a.areaM2, flat.areaM2) : 0) +
-    (sameNeighborhood(a) ? 0 : OTHER_NEIGHBORHOOD_PENALTY);
+  // Most similar first: smallest price difference, then closest size, then same neighborhood.
+  const priceGap = (a: Alternative) => (flat.priceCzk == null ? 0 : Math.abs(a.priceCzk - flat.priceCzk));
+  const sizeGap = (a: Alternative) => (a.areaM2 != null && flat.areaM2 ? relativeDiff(a.areaM2, flat.areaM2) : 0);
+  const bySimilarity = (a: Alternative, b: Alternative) =>
+    priceGap(a) - priceGap(b) ||
+    sizeGap(a) - sizeGap(b) ||
+    Number(!sameNeighborhood(a)) - Number(!sameNeighborhood(b));
 
   const candidates = [...new Map(all.map((a) => [a.url, a])).values()]
     .filter(
@@ -400,7 +432,7 @@ export function findSimilar(all: Alternative[], flat: FlatInfo, filters: Filters
         areaOk(a) &&
         (!furnishedOnly || a.furnished === true),
     )
-    .sort((a, b) => score(a) - score(b));
+    .sort(bySimilarity);
 
   return groupSameFlat(candidates).slice(0, limit);
 }

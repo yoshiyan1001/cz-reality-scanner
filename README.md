@@ -34,7 +34,8 @@ Open any Prague flat listing, for example on Sreality, and a small box appears i
 ```
 
 - **Similar flats** have the same layout (e.g. 2+kk), are in the same neighbourhood or district, are a similar size, and cost within ±5 000 Kč (rent) or ±30 % (sale).
-- **The 3 most similar are shown first**; click *Show more* for the rest.
+- **The 3 most similar are shown first**: the smallest price difference first, then the closest size. Scroll the list or click *Show more* for the rest.
+- **Each flat shows its first photo**, loaded straight from its site (never copied or stored).
 - **−/+** is the price difference from the listing you're viewing: blue − is cheaper, red + is more expensive.
 - **The same flat on several sites** is shown once, with *Also on …* links.
 - **no commission** marks flats offered directly by the owner, so no agency fee.
@@ -114,7 +115,7 @@ Settings save automatically, sync across your Chrome browsers, and update the op
 ## Privacy
 
 - **Runs entirely in your browser.** There is no server, no account and no tracking.
-- **What it fetches:** to find similar flats, it loads the search results pages of the supported sites from your browser, without your cookies or logins. Results are kept for 10 minutes, so revisiting a page doesn't fetch again.
+- **What it fetches:** to find similar flats, it loads the search results pages of the supported sites from your browser, without your cookies or logins. Results are kept for 10 minutes, so revisiting a page doesn't fetch again. Listing photos load directly from each site, the same way they do when you visit it.
 - **What it stores:** only your settings, in Chrome's sync storage.
 - **Permissions:** `storage` (your settings) and access to the six sites it compares against.
 

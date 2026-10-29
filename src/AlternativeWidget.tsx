@@ -68,6 +68,31 @@ function describeFilters({ range, furnishedOnly }: Filters): string | null {
   return parts.length ? parts.join(" · ") : null;
 }
 
+/**
+ * The listing's first photo, loaded straight from its site (not copied or stored). No
+ * referrer, so sites that block hotlinking from other pages still serve it.
+ */
+// Fixed thumbnail size, set inline so it holds regardless of stylesheet updates.
+const PHOTO_BOX = { width: 48, height: 36, flex: "0 0 auto" } as const;
+
+function Photo({ url }: { url: string | null }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span style={PHOTO_BOX} className="block overflow-hidden rounded bg-zinc-100">
+      {url && !failed && (
+        <img
+          src={url}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+          style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      )}
+    </span>
+  );
+}
+
 /** "−3 000 Kč" (cheaper, blue) / "+2 000 Kč" (dearer, red) / "same price", relative to the viewed flat. */
 function PriceDiff({ price, reference }: { price: number; reference: number | null }) {
   if (reference == null) return null;
@@ -225,7 +250,8 @@ export function AlternativeWidget({ flat, settings }: { flat: FlatInfo; settings
               rel="noopener noreferrer"
               className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50"
             >
-              <span className="min-w-0">
+              <Photo url={alt.imageUrl} />
+              <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{alt.address}</span>
                 <span className="flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
                   {alt.title} · {SOURCE_LABELS[alt.source]}
