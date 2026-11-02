@@ -7,3 +7,6 @@ dist
 .env*
 .neon
 .dev.vars*
+
+# Unpacked copy of the store zip
+reality-scanner-cz/

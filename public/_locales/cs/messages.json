@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Reality Scanner CZ",
+    "description": "Název rozšíření"
+  },
+  "extDescription": {
+    "message": "Při prohlížení Sreality, Bezrealitky, iDNES a dalších ukazuje podobné byty z ostatních českých realitních serverů.",
+    "description": "Krátký popis v Chrome Web Store, max. 132 znaků"
+  },
+  "actionTitle": {
+    "message": "Nastavení Reality Scanner CZ",
+    "description": "Popisek ikony v liště"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Reality Scanner CZ",
+    "description": "Назва розширення"
+  },
+  "extDescription": {
+    "message": "Показує схожі квартири з інших чеських сайтів нерухомості, поки ви переглядаєте Sreality, Bezrealitky, iDNES та інші.",
+    "description": "Короткий опис у Chrome Web Store, макс. 132 символи"
+  },
+  "actionTitle": {
+    "message": "Налаштування Reality Scanner CZ",
+    "description": "Підказка до значка на панелі"
+  }
+}
